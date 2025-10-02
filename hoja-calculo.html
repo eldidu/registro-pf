@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <title>Registros PF - Hoja de Cálculo</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="registro_PF.css">
+</head>
+<body class="hoja-calculo-page">
+    <div class="container">
+        <header>
+            <h1>📊 Registros PF - Hoja de Cálculo</h1>
+            <div class="header-actions">
+                <button onclick="volverAlFormulario()" class="button secondary">← Volver al Formulario</button>
+                <button onclick="exportarExcel()" class="button success">📊 Exportar Excel</button>
+                <button onclick="crearNuevoMes()" class="button warning">🆕 Nuevo Mes</button>
+                <button onclick="actualizarDatos()" class="button info">🔄 Actualizar</button>
+                <button onclick="limpiarRegistros()" class="button danger">🗑️ Eliminar Datos</button>
+            </div>
+        </header>
+
+        <!-- Resumen general -->
+        <div class="resumen">
+            <h3>📈 Resumen General</h3>
+            <div class="resumen-stats">
+                <div class="stat-card">
+                    <span class="stat-number" id="totalRegistros">0</span>
+                    <span class="stat-label">Total Registros</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number" id="totalMonto">$0</span>
+                    <span class="stat-label">Monto Total</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number" id="totalAnalistas">0</span>
+                    <span class="stat-label">Analistas</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number" id="ultimaActualizacion">--:--</span>
+                    <span class="stat-label">Última Actualización</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pestañas de meses -->
+        <div class="tabs-container">
+            <div class="tabs-header" id="tabsHeader">
+                <!-- Las pestañas se generan dinámicamente -->
+            </div>
+            <div class="tabs-content">
+                <div id="contenidoPestanas">
+                    <!-- El contenido de cada pestaña se genera dinámicamente -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabla de registros -->
+        <div id="tablaContainer">
+            <div class="sin-registros">
+                <h3>📂 Cargando datos compartidos...</h3>
+                <p>Conectando con la base de datos del equipo</p>
+            </div>
+        </div>
+
+        <!-- Información del sistema -->
+        <div class="sincronizacion">
+            <h4>🌐 Sistema en GitHub Pages + JSONBin</h4>
+            <p><strong>✅ Datos en Tiempo Real:</strong> Todos los analistas ven la misma información actualizada automáticamente.</p>
+            <p><strong>👥 12 Usuarios Simultáneos:</strong> Todo el equipo puede trabajar al mismo tiempo.</p>
+            <p><strong>💾 Backup Automático:</strong> Los datos se respaldan automáticamente en JSONBin.</p>
+            <p><strong>🔄 Sincronización:</strong> Los datos se actualizan automáticamente cada 30 segundos.</p>
+        </div>
+    </div>
+
+    <script src="registro_PF.js"></script>
+    <script>
+        // Inicializar cuando se carga la página
+        document.addEventListener('DOMContentLoaded', function() {
+            cargarDatos();
+            
+            // Actualizar automáticamente cada 30 segundos
+            setInterval(cargarDatos, 30000);
+        });
+
+        async function cargarDatos() {
+            await actualizarInterfaz();
+            document.getElementById('ultimaActualizacion').textContent = new Date().toLocaleTimeString();
+        }
+
+        async function actualizarDatos() {
+            await cargarDatos();
+            mostrarMensajeGlobal('✅ Datos actualizados', 'exito');
+        }
+
+        async function actualizarInterfaz() {
+            const meses = await sistemaPF.obtenerMesesConDatos();
+            const todosLosRegistros = await sistemaPF.obtenerTodosLosRegistros();
+            
+            actualizarResumen(todosLosRegistros);
+            actualizarPestanas(meses);
+            mostrarTablaRegistros();
+        }
+
+        function actualizarResumen(registros) {
+            const totalRegistros = document.getElementById('totalRegistros');
+            const totalMonto = document.getElementById('totalMonto');
+            const totalAnalistas = document.getElementById('totalAnalistas');
+            
+            if (totalRegistros) totalRegistros.textContent = registros.length;
+            
+            if (totalMonto) {
+                const montoTotal = registros.reduce((sum, reg) => sum + (parseFloat(reg.monto) || 0), 0);
+                totalMonto.textContent = `$${montoTotal.toFixed(2)}`;
+            }
+            
+            if (totalAnalistas) {
+                const analistasUnicos = new Set(registros.map(reg => reg.analista)).size;
+                totalAnalistas.textContent = analistasUnicos;
+            }
+        }
+
+        async function actualizarPestanas(meses) {
+            const tabsHeader = document.getElementById('tabsHeader');
+            const contenidoPestanas = document.getElementById('contenidoPestanas');
+            
+            if (!tabsHeader || !contenidoPestanas) return;
+            
+            tabsHeader.innerHTML = '';
+            contenidoPestanas.innerHTML = '';
+            
+            if (meses.length === 0) {
+                contenidoPestanas.innerHTML = `
+                    <div class="tab-contenido activa">
+                        <div class="sin-registros">
+                            <h3>No hay registros disponibles</h3>
+                            <p>Ve al formulario para agregar el primer registro.</p>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+            
+            for (let i = 0; i < meses.length; i++) {
+                const mes = meses[i];
+                const tab = document.createElement('button');
+                tab.className = `tab ${i === 0 ? 'activa' : ''}`;
+                tab.textContent = formatearNombreMes(mes);
+                tab.onclick = () => cambiarPestana(mes);
+                tabsHeader.appendChild(tab);
+                
+                const tabContenido = document.createElement('div');
+                tabContenido.className = `tab-contenido ${i === 0 ? 'activa' : ''}`;
+                tabContenido.id = `contenido-${mes}`;
+                
+                const registros = await sistemaPF.obtenerRegistrosMes(sistemaPF.claveBase + mes);
+                tabContenido.innerHTML = generarResumenMes(registros, mes);
+                
+                contenidoPestanas.appendChild(tabContenido);
+            }
+        }
+
+        function cambiarPestana(mes) {
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('activa');
+            });
+            
+            document.querySelectorAll('.tab-contenido').forEach(contenido => {
+                contenido.classList.remove('activa');
+            });
+            
+            const tabSeleccionada = Array.from(document.querySelectorAll('.tab')).find(tab => 
+                tab.textContent === formatearNombreMes(mes)
+            );
+            
+            if (tabSeleccionada) {
+                tabSeleccionada.classList.add('activa');
+            }
+            
+            const contenidoSeleccionado = document.getElementById(`contenido-${mes}`);
+            if (contenidoSeleccionado) {
+                contenidoSeleccionado.classList.add('activa');
+            }
+            
+            mostrarTablaRegistros(mes);
+        }
+
+        function formatearNombreMes(claveMes) {
+            const [año, mes] = claveMes.split('-');
+            const fecha = new Date(año, parseInt(mes) - 1);
+            return fecha.toLocaleDateString('es-ES', { 
+                month: 'long', 
+                year: 'numeric' 
+            }).charAt(0).toUpperCase() + 
+            fecha.toLocaleDateString('es-ES', { 
+                month: 'long', 
+                year: 'numeric' 
+            }).slice(1);
+        }
+
+        function generarResumenMes(registros, mes) {
+            const montoTotal = registros.reduce((sum, reg) => sum + (parseFloat(reg.monto) || 0), 0);
+            const analistasUnicos = new Set(registros.map(reg => reg.analista)).size;
+            
+            return `
+                <div style="padding: 20px;">
+                    <h3>Resumen de ${formatearNombreMes(mes)}</h3>
+                    <div class="resumen-stats">
+                        <div class="stat-card">
+                            <span class="stat-number">${registros.length}</span>
+                            <span class="stat-label">Registros</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-number">$${montoTotal.toFixed(2)}</span>
+                            <span class="stat-label">Monto Total</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-number">${analistasUnicos}</span>
+                            <span class="stat-label">Analistas</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function mostrarTablaRegistros(mes = null) {
+            const tablaContainer = document.getElementById('tablaContainer');
+            const registros = mes ? 
+                await sistemaPF.obtenerRegistrosMes(sistemaPF.claveBase + mes) : 
+                await sistemaPF.obtenerRegistrosMes();
+            
+            if (registros.length === 0) {
+                tablaContainer.innerHTML = `
+                    <div class="sin-registros">
+                        <h3>No hay registros para mostrar</h3>
+                        <p>No se encontraron registros para el mes seleccionado.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            let tablaHTML = `
+                <div class="tabla-completa-container">
+                    <h3>
+                        📋 Registros de ${mes ? formatearNombreMes(mes) : 'Mes Actual'} 
+                        <span class="contador-registros">${registros.length} registros</span>
+                    </h3>
+                    <div class="tabla-container">
+                        <table class="tabla-registros">
+                            <thead>
+                                <tr>
+                                    <th>Analista</th>
+                                    <th>Localizador</th>
+                                    <th>Canal</th>
+                                    <th>Monto</th>
+                                    <th>Fecha</th>
+                                    <th>Observaciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+            `;
+            
+            // Ordenar registros por fecha (más recientes primero)
+            registros.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            
+            registros.forEach(registro => {
+                tablaHTML += `
+                    <tr>
+                        <td><strong>${escapeHTML(registro.analista)}</strong></td>
+                        <td>${registro.localizador}</td>
+                        <td>${escapeHTML(registro.canal)}</td>
+                        <td style="color: #27ae60; font-weight: bold;">$${parseFloat(registro.monto).toFixed(2)}</td>
+                        <td style="color: #666; font-size: 14px;">${registro.fecha}</td>
+                        <td>${escapeHTML(registro.observaciones)}</td>
+                    </tr>
+                `;
+            });
+            
+            tablaHTML += `
+                            </tbody>
+                        </table>
+                    </div>
+                    <div style="margin-top: 15px; text-align: right;">
+                        <button onclick="exportarMes('${mes || ''}')" class="button success">
+                            📊 Exportar a Excel
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            tablaContainer.innerHTML = tablaHTML;
+        }
+
+        function escapeHTML(texto) {
+            if (!texto) return '';
+            const div = document.createElement('div');
+            div.textContent = texto;
+            return div.innerHTML;
+        }
+
+        function volverAlFormulario() {
+            window.location.href = 'index.html';
+        }
+
+        async function exportarExcel() {
+            await sistemaPF.exportarExcel();
+        }
+
+        async function exportarMes(mes) {
+            if (mes) {
+                await sistemaPF.exportarExcel(sistemaPF.claveBase + mes);
+            } else {
+                await sistemaPF.exportarExcel();
+            }
+        }
+
+        async function crearNuevoMes() {
+            if (await sistemaPF.crearNuevoMesManual()) {
+                alert('¡Nuevo mes creado exitosamente!');
+                location.reload();
+            } else {
+                alert('El mes siguiente ya existe o no se pudo crear.');
+            }
+        }
+
+        async function limpiarRegistros() {
+            await window.limpiarRegistros();
+        }
+
+        function mostrarMensajeGlobal(texto, tipo) {
+            alert(texto);
+        }
+    </script>
+</body>
+</html>

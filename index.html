@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <title>Registro-PF</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta lang="es">
+    <link rel="stylesheet" type="text/css" href="registro_PF.css">
+</head>
+<body class="formulario-page">
+    <div class="container">
+        <div class="formularioContainer">
+            <center><h2>Registro-PF</h2></center>
+            <hr><br>
+            
+            <form id="form" name="form"> 
+                <div class="form-group">
+                    <label for="analista">Analista:</label>
+                    <select name="analista" id="analista" required> 
+                        <option value="">Selecciona un analista</option>
+                        <option value="Araceli">Araceli</option>
+                        <option value="Brenda">Brenda</option>
+                        <option value="Caamal">Caamal</option>
+                        <option value="Carranza">Carranza</option>
+                        <option value="Daniel">Daniel</option>
+                        <option value="Edwin">Edwin</option>
+                        <option value="Frania">Frania</option>
+                        <option value="Gibrann">Gibrann</option>
+                        <option value="Johanna">Johanna</option>
+                        <option value="Liliana">Liliana</option>
+                        <option value="Mariela">Mariela</option>
+                        <option value="Stephania">Stephania</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="localizador">Localizador:</label>
+                    <input type="number" name="localizador" id="localizador" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="monto">Monto:</label>
+                    <input type="number" name="monto" id="monto" step=".01" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="canal">Canal:</label>
+                    <input type="text" placeholder="e.g. 3957 - PT MX Members" name="canal" id="canal" required>
+                    <small>Selecciona el texto como en el ejemplo y pégalo</small>
+                    <img src="select.png" alt="ejemplo" class="info-icon" style="width: 100%; height: auto;">
+                </div>
+
+                <div class="form-group">
+                    <label for="observaciones">Observaciones:</label>
+                    <textarea type="text" placeholder="#Registrado-PF" rows="3" name="observaciones" id="observaciones" required></textarea>
+                </div>
+
+                <div class="form-buttons">
+                    <button type="submit" class="button">✅ Guardar</button>
+                    <button type="button" class="button secondary" onclick="verRegistros()">📊 Ver Registros</button>
+                </div>
+                
+                <div id="mensaje"></div>
+            </form>
+
+            <!-- Botones adicionales -->
+            <center>
+                <div class="botones-adicionales">
+                    <button onclick="exportarExcel()" class="button success">📈 Exportar Excel</button>
+                    <button onclick="limpiarRegistros()" class="button danger">🗑️ Eliminar Datos</button>
+                </div>
+            </center>
+
+            <div class="info-github">
+                <p><strong>🌐 Sistema Compartido:</strong> Todos los analistas ven la misma información en tiempo real.</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="registro_PF.js"></script>
+</body>
+</html>
